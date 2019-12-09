@@ -100,6 +100,7 @@ struct vkd3d_vulkan_info
     bool KHR_image_format_list;
     bool KHR_maintenance3;
     bool KHR_push_descriptor;
+    bool KHR_timeline_semaphore;
     /* EXT device extensions */
     bool EXT_conditional_rendering;
     bool EXT_debug_marker;
@@ -115,6 +116,8 @@ struct vkd3d_vulkan_info
 
     bool vertex_attrib_zero_divisor;
     unsigned int max_vertex_attrib_divisor;
+
+    uint64_t max_timeline_semaphore_value_difference;
 
     VkPhysicalDeviceLimits device_limits;
     VkPhysicalDeviceSparseProperties sparse_properties;

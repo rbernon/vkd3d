@@ -127,6 +127,7 @@ static const struct vkd3d_optional_extension_info optional_device_extensions[] =
     VK_EXTENSION(KHR_IMAGE_FORMAT_LIST, KHR_image_format_list),
     VK_EXTENSION(KHR_MAINTENANCE3, KHR_maintenance3),
     VK_EXTENSION(KHR_PUSH_DESCRIPTOR, KHR_push_descriptor),
+    VK_EXTENSION(KHR_TIMELINE_SEMAPHORE, KHR_timeline_semaphore),
     /* EXT extensions */
     VK_EXTENSION(EXT_CONDITIONAL_RENDERING, EXT_conditional_rendering),
     VK_EXTENSION(EXT_DEBUG_MARKER, EXT_debug_marker),
@@ -664,6 +665,7 @@ struct vkd3d_physical_device_info
     VkPhysicalDeviceTexelBufferAlignmentPropertiesEXT texel_buffer_alignment_properties;
     VkPhysicalDeviceTransformFeedbackPropertiesEXT xfb_properties;
     VkPhysicalDeviceVertexAttributeDivisorPropertiesEXT vertex_divisor_properties;
+    VkPhysicalDeviceTimelineSemaphorePropertiesKHR timeline_semaphore_properties;
 
     VkPhysicalDeviceProperties2KHR properties2;
 
@@ -675,6 +677,7 @@ struct vkd3d_physical_device_info
     VkPhysicalDeviceTexelBufferAlignmentFeaturesEXT texel_buffer_alignment_features;
     VkPhysicalDeviceTransformFeedbackFeaturesEXT xfb_features;
     VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT vertex_divisor_features;
+    VkPhysicalDeviceTimelineSemaphoreFeaturesKHR timeline_semaphore_features;
 
     VkPhysicalDeviceFeatures2 features2;
 };
@@ -693,8 +696,10 @@ static void vkd3d_physical_device_info_init(struct vkd3d_physical_device_info *i
     VkPhysicalDeviceDepthClipEnableFeaturesEXT *depth_clip_features;
     VkPhysicalDeviceMaintenance3Properties *maintenance3_properties;
     VkPhysicalDeviceTransformFeedbackPropertiesEXT *xfb_properties;
+    VkPhysicalDeviceTimelineSemaphorePropertiesKHR *timeline_semaphore_properties;
     VkPhysicalDevice physical_device = device->vk_physical_device;
     VkPhysicalDeviceTransformFeedbackFeaturesEXT *xfb_features;
+    VkPhysicalDeviceTimelineSemaphoreFeaturesKHR *timeline_semaphore_features;
     struct vkd3d_vulkan_info *vulkan_info = &device->vk_info;
 
     memset(info, 0, sizeof(*info));
@@ -710,6 +715,8 @@ static void vkd3d_physical_device_info_init(struct vkd3d_physical_device_info *i
     vertex_divisor_properties = &info->vertex_divisor_properties;
     xfb_features = &info->xfb_features;
     xfb_properties = &info->xfb_properties;
+    timeline_semaphore_properties = &info->timeline_semaphore_properties;
+    timeline_semaphore_features = &info->timeline_semaphore_features;
 
     info->features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 
@@ -727,6 +734,8 @@ static void vkd3d_physical_device_info_init(struct vkd3d_physical_device_info *i
     vk_prepend_struct(&info->features2, xfb_features);
     vertex_divisor_features->sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_FEATURES_EXT;
     vk_prepend_struct(&info->features2, vertex_divisor_features);
+    timeline_semaphore_features->sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES_KHR;
+    vk_prepend_struct(&info->features2, timeline_semaphore_features);
 
     if (vulkan_info->KHR_get_physical_device_properties2)
         VK_CALL(vkGetPhysicalDeviceFeatures2KHR(physical_device, &info->features2));
@@ -745,6 +754,8 @@ static void vkd3d_physical_device_info_init(struct vkd3d_physical_device_info *i
     vk_prepend_struct(&info->properties2, xfb_properties);
     vertex_divisor_properties->sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_PROPERTIES_EXT;
     vk_prepend_struct(&info->properties2, vertex_divisor_properties);
+    timeline_semaphore_properties->sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_PROPERTIES_KHR;
+    vk_prepend_struct(&info->properties2, timeline_semaphore_properties);
 
     if (vulkan_info->KHR_get_physical_device_properties2)
         VK_CALL(vkGetPhysicalDeviceProperties2KHR(physical_device, &info->properties2));
@@ -817,6 +828,7 @@ static void vkd3d_trace_physical_device_limits(const struct vkd3d_physical_devic
     const VkPhysicalDeviceTexelBufferAlignmentPropertiesEXT *buffer_alignment;
     const VkPhysicalDeviceMaintenance3Properties *maintenance3;
     const VkPhysicalDeviceTransformFeedbackPropertiesEXT *xfb;
+    const VkPhysicalDeviceTimelineSemaphorePropertiesKHR *timeline_semaphore;
 
     TRACE("Device limits:\n");
     TRACE("  maxImageDimension1D: %u.\n", limits->maxImageDimension1D);
@@ -1021,6 +1033,10 @@ static void vkd3d_trace_physical_device_limits(const struct vkd3d_physical_devic
     divisor_properties = &info->vertex_divisor_properties;
     TRACE("  VkPhysicalDeviceVertexAttributeDivisorPropertiesEXT:\n");
     TRACE("    maxVertexAttribDivisor: %u.\n", divisor_properties->maxVertexAttribDivisor);
+
+    timeline_semaphore = &info->timeline_semaphore_properties;
+    TRACE("  VkPhysicalDeviceTimelineSemaphorePropertiesKHR:\n");
+    TRACE("    maxTimelineSemaphoreValueDifference: %"PRIu64".\n", timeline_semaphore->maxTimelineSemaphoreValueDifference);
 }
 
 static void vkd3d_trace_physical_device_features(const struct vkd3d_physical_device_info *info)
@@ -1033,6 +1049,7 @@ static void vkd3d_trace_physical_device_features(const struct vkd3d_physical_dev
     const VkPhysicalDeviceDepthClipEnableFeaturesEXT *depth_clip_features;
     const VkPhysicalDeviceFeatures *features = &info->features2.features;
     const VkPhysicalDeviceTransformFeedbackFeaturesEXT *xfb;
+    const VkPhysicalDeviceTimelineSemaphoreFeaturesKHR *timeline_semaphore;
 
     TRACE("Device features:\n");
     TRACE("  robustBufferAccess: %#x.\n", features->robustBufferAccess);
@@ -1165,6 +1182,10 @@ static void vkd3d_trace_physical_device_features(const struct vkd3d_physical_dev
             divisor_features->vertexAttributeInstanceRateDivisor);
     TRACE("    vertexAttributeInstanceRateZeroDivisor: %#x.\n",
             divisor_features->vertexAttributeInstanceRateZeroDivisor);
+
+    timeline_semaphore = &info->timeline_semaphore_features;
+    TRACE("  VkPhysicalDeviceTimelineSemaphoreFeaturesKHR:\n");
+    TRACE("    timelineSemaphore: %#x.\n", timeline_semaphore->timelineSemaphore);
 }
 
 static void vkd3d_init_feature_level(struct vkd3d_vulkan_info *vk_info,
@@ -1293,6 +1314,8 @@ static HRESULT vkd3d_init_device_caps(struct d3d12_device *device,
     vulkan_info->rasterization_stream = physical_device_info->xfb_properties.transformFeedbackRasterizationStreamSelect;
     vulkan_info->transform_feedback_queries = physical_device_info->xfb_properties.transformFeedbackQueries;
     vulkan_info->max_vertex_attrib_divisor = max(physical_device_info->vertex_divisor_properties.maxVertexAttribDivisor, 1);
+
+    vulkan_info->max_timeline_semaphore_value_difference = max(physical_device_info->timeline_semaphore_properties.maxTimelineSemaphoreValueDifference, 1);
 
     device->feature_options.DoublePrecisionFloatShaderOps = features->shaderFloat64;
     device->feature_options.OutputMergerLogicOp = features->logicOp;

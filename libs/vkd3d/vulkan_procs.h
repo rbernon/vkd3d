@@ -206,6 +206,9 @@ VK_DEVICE_EXT_PFN(vkCmdBindTransformFeedbackBuffersEXT)
 VK_DEVICE_EXT_PFN(vkCmdEndQueryIndexedEXT)
 VK_DEVICE_EXT_PFN(vkCmdEndTransformFeedbackEXT)
 
+/* VK_KHR_timeline_semaphore */
+VK_DEVICE_EXT_PFN(vkSignalSemaphoreKHR)
+
 #undef VK_INSTANCE_PFN
 #undef VK_INSTANCE_EXT_PFN
 #undef VK_DEVICE_PFN
