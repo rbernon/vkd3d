@@ -357,6 +357,7 @@ struct d3d12_fence
     LONG pending_worker_operation_count;
 
     VkFence old_vk_fences[VKD3D_MAX_VK_SYNC_OBJECTS];
+    VkSemaphore vk_timeline_semaphore;
 
     struct d3d12_device *device;
 
